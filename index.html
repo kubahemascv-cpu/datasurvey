@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<title>CS Input Form — Kumasindo</title>
+<meta name="theme-color" content="#C43E08">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CS Survey">
+<meta name="application-name" content="CS Survey">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-512.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --or:#F05A1A;--or-d:#C43E08;--or-l:#FFF2EC;--or-b:#FECBA8;
+  --ch:#1C1E26;--ch2:#2D3142;
+  --bg:#FFFFFF;--bg2:#F8F6F2;--bg3:#F0EDE8;
+  --txt:#1C1E26;--txt2:#3A3D4A;--mut:#7A7E8A;
+  --bdr:#E8E4DE;--bdr2:#D8D4CE;
+  --grn:#16A34A;--grn-l:#F0FDF4;--grn-b:#BBF7D0;
+  --red:#DC2626;--red-l:#FEF2F2;--red-b:#FECACA;
+  --shd:0 2px 10px rgba(0,0,0,.06);--shd2:0 6px 24px rgba(0,0,0,.1);
+  --font:'Poppins',-apple-system,sans-serif;--r:14px;
+}
+body{font-family:var(--font);background:var(--bg2);color:var(--txt);min-height:100vh;max-width:520px;margin:0 auto;padding-bottom:40px}
+
+/* TOPBAR */
+.topbar{background:var(--ch);padding:env(safe-area-inset-top) 0 0;box-shadow:0 2px 16px rgba(0,0,0,.3)}
+.topbar-inner{padding:0 20px;height:56px;display:flex;align-items:center;gap:12px}
+.brand-dot{width:34px;height:34px;border-radius:9px;background:var(--or);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.brand-dot svg{width:18px;height:18px;fill:#fff}
+.brand-text{flex:1}
+.brand-name{font-size:13.5px;font-weight:700;color:#fff;line-height:1}
+.brand-sub{font-size:10px;color:rgba(255,255,255,.5);font-weight:400}
+.tab-bar{display:flex;border-top:1px solid rgba(255,255,255,.08)}
+.tab-btn{flex:1;height:40px;border:none;background:none;color:rgba(255,255,255,.45);font-family:var(--font);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;border-bottom:2.5px solid transparent;transition:all .15s}
+.tab-btn.active{color:var(--or);border-bottom-color:var(--or)}
+
+/* WRAP */
+.wrap{padding:20px 16px}
+
+/* FORM CARD */
+.form-card{background:var(--bg);border-radius:var(--r);box-shadow:var(--shd);border:1px solid var(--bdr);overflow:hidden;margin-bottom:14px}
+.form-card-head{padding:12px 18px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:9px;background:var(--bg2)}
+.form-card-ico{font-size:16px}
+.form-card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--mut)}
+.form-card-body{padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+
+/* FIELD */
+.field{display:flex;flex-direction:column;gap:5px}
+.field-label{font-size:12px;font-weight:700;color:var(--txt2);display:flex;align-items:center;gap:4px}
+.req{color:var(--or);font-size:13px;line-height:1}
+.field-inp,.field-ta{font-family:var(--font);font-size:13.5px;font-weight:500;color:var(--txt);background:var(--bg);border:2px solid var(--bdr);border-radius:10px;outline:none;transition:border-color .15s,box-shadow .15s;width:100%}
+.field-inp{height:46px;padding:0 13px}
+.field-ta{padding:11px 13px;resize:none;min-height:74px;line-height:1.55}
+.field-inp:focus,.field-ta:focus{border-color:var(--or);box-shadow:0 0 0 3px rgba(240,90,26,.12)}
+.field-inp.err,.field-ta.err{border-color:var(--red);box-shadow:0 0 0 3px rgba(220,38,38,.1)}
+.field-hint{font-size:10.5px;color:var(--mut);line-height:1.55}
+
+/* KATEGORI GRID */
+.kat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.kat-btn{height:42px;border-radius:10px;border:2px solid var(--bdr);background:var(--bg);font-family:var(--font);font-size:12px;font-weight:600;color:var(--txt2);cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;padding:0 4px}
+.kat-btn:hover{border-color:var(--or-b);color:var(--or)}
+.kat-btn.active{border-color:var(--or);background:var(--or-l);color:var(--or-d);font-weight:700}
+.kat-err .kat-btn{border-color:var(--red-b)}
+
+/* STATUS TOGGLE */
+.status-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.status-btn{height:46px;border-radius:10px;border:2px solid var(--bdr);background:var(--bg);font-family:var(--font);font-size:12.5px;font-weight:600;color:var(--mut);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.status-btn.active-belum{border-color:#FDE68A;background:#FFFBEB;color:#92400E}
+.status-btn.active-sudah{border-color:var(--grn-b);background:var(--grn-l);color:var(--grn)}
+.status-err .status-btn{border-color:var(--red-b)}
+
+/* SUBMIT */
+.btn-submit{width:100%;height:52px;border-radius:14px;border:none;background:var(--or);color:#fff;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;letter-spacing:.01em}
+.btn-submit:hover{background:var(--or-d);transform:translateY(-1px);box-shadow:0 4px 16px rgba(240,90,26,.35)}
+.btn-submit:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-reset{width:100%;height:40px;border-radius:10px;border:2px solid var(--bdr);background:var(--bg);font-family:var(--font);font-size:13px;font-weight:600;color:var(--mut);cursor:pointer;transition:all .15s}
+.btn-reset:hover{border-color:var(--bdr2);color:var(--txt2)}
+.spinner{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ALERT */
+.alert{border-radius:12px;padding:12px 16px;font-size:12.5px;font-weight:600;line-height:1.55;margin-bottom:14px;display:none;gap:10px;align-items:flex-start}
+.alert.show{display:flex}
+.alert.success{background:var(--grn-l);border:1.5px solid var(--grn-b);color:var(--grn)}
+.alert.error{background:var(--red-l);border:1.5px solid var(--red-b);color:var(--red)}
+.alert-ico{font-size:16px;flex-shrink:0;margin-top:1px}
+
+/* HISTORY */
+.hist-card{background:var(--bg);border-radius:var(--r);box-shadow:var(--shd);border:1px solid var(--bdr);overflow:hidden}
+.hist-item{padding:13px 16px;border-bottom:1px solid var(--bdr)}
+.hist-item:last-child{border-bottom:none}
+.hist-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:4px}
+.hist-name{font-size:13.5px;font-weight:700;color:var(--txt);flex:1}
+.hist-ts{font-size:10px;color:var(--mut);white-space:nowrap;margin-top:2px}
+.hist-addr{font-size:11.5px;color:var(--txt2);margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hist-foot{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.h-badge{font-size:9.5px;font-weight:700;padding:2px 9px;border-radius:20px}
+.h-kat{background:var(--or-l);color:var(--or-d);border:1px solid var(--or-b)}
+.h-ok{background:var(--grn-l);color:var(--grn);border:1px solid var(--grn-b)}
+.h-no{background:#FFFBEB;color:#92400E;border:1px solid #FDE68A}
+.h-date{font-size:10px;color:var(--mut);font-weight:500}
+.empty-hist{padding:28px 16px;text-align:center;color:var(--mut);font-size:12.5px;line-height:1.6}
+.sec-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);display:block;margin-bottom:8px}
+.hist-clear{font-size:11px;font-weight:600;color:var(--mut);background:none;border:none;cursor:pointer;font-family:var(--font);text-decoration:underline;display:block;margin:10px auto 0;opacity:.7}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand-dot">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+    </div>
+    <div class="brand-text">
+      <div class="brand-name">CS Input Form</div>
+      <div class="brand-sub">Kumasindo · Data Surveyor</div>
+    </div>
+  </div>
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-form-btn" onclick="switchTab('form')">📝 Input Data</button>
+    <button class="tab-btn" id="tab-hist-btn" onclick="switchTab('history')">🕐 Riwayat</button>
+  </div>
+</div>
+
+<!-- TAB 1: FORM -->
+<div id="tab-form" class="wrap">
+
+  <div class="alert" id="alert-box">
+    <span class="alert-ico" id="alert-ico"></span>
+    <span id="alert-msg"></span>
+  </div>
+
+  <!-- Informasi Customer -->
+  <div class="form-card">
+    <div class="form-card-head">
+      <span class="form-card-ico">👤</span>
+      <span class="form-card-title">Informasi Customer</span>
+    </div>
+    <div class="form-card-body">
+      <div class="field">
+        <label class="field-label">Tanggal Input <span class="req">*</span></label>
+        <input class="field-inp" type="date" id="inp-tanggal" required>
+      </div>
+      <div class="field">
+        <label class="field-label">Nama Customer <span class="req">*</span></label>
+        <input class="field-inp" type="text" id="inp-nama" placeholder="Nama lengkap customer" required autocomplete="off">
+      </div>
+      <div class="field">
+        <label class="field-label">Alamat <span class="req">*</span></label>
+        <textarea class="field-ta" id="inp-alamat" placeholder="Alamat lengkap lokasi survey..." required></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kategori -->
+  <div class="form-card">
+    <div class="form-card-head">
+      <span class="form-card-ico">🏷️</span>
+      <span class="form-card-title">Kategori <span style="color:var(--or)">*</span></span>
+    </div>
+    <div class="form-card-body" style="gap:0">
+      <div class="kat-grid" id="kat-grid">
+        <button class="kat-btn" onclick="selectKat(this,'Follow Up')">Follow Up</button>
+        <button class="kat-btn" onclick="selectKat(this,'Follow Up Bulan Ini')">Follow Up Bulan Ini</button>
+        <button class="kat-btn" onclick="selectKat(this,'Jackpot')">⭐ Jackpot</button>
+        <button class="kat-btn" onclick="selectKat(this,'Repeat')">🔄 Repeat</button>
+        <button class="kat-btn" onclick="selectKat(this,'Survey Ulang')">Survey Ulang</button>
+        <button class="kat-btn" onclick="selectKat(this,'Rekomendasi')">Rekomendasi</button>
+      </div>
+      <input type="hidden" id="inp-kategori">
+    </div>
+  </div>
+
+  <!-- Jadwal & Status -->
+  <div class="form-card">
+    <div class="form-card-head">
+      <span class="form-card-ico">📅</span>
+      <span class="form-card-title">Jadwal & Status Survey</span>
+    </div>
+    <div class="form-card-body">
+      <div class="field">
+        <label class="field-label">Tanggal Survey <span class="req">*</span></label>
+        <input class="field-inp" type="date" id="inp-tgl-survey" required>
+      </div>
+      <div class="field">
+        <label class="field-label">Status Survey <span class="req">*</span></label>
+        <div class="status-row" id="status-row">
+          <button class="status-btn" id="status-belum" onclick="selectStatus('Belum Survey')">⏳ Belum Survey</button>
+          <button class="status-btn" id="status-sudah" onclick="selectStatus('Sudah Survey')">✅ Sudah Survey</button>
+        </div>
+        <input type="hidden" id="inp-status">
+      </div>
+    </div>
+  </div>
+
+  <!-- Google Maps -->
+  <div class="form-card">
+    <div class="form-card-head">
+      <span class="form-card-ico">🗺️</span>
+      <span class="form-card-title">Lokasi Google Maps</span>
+    </div>
+    <div class="form-card-body">
+      <div class="field">
+        <label class="field-label">Share Link Google Maps</label>
+        <input class="field-inp" type="url" id="inp-gmap" placeholder="https://maps.app.goo.gl/...">
+        <div class="field-hint">📌 Cara copy: Buka Google Maps → tahan titik lokasi → Share → Copy link → paste di sini</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-submit" id="btn-submit" onclick="submitForm()">
+    <span id="submit-label">Kirim Data ke Spreadsheet</span>
+  </button>
+  <button class="btn-reset" onclick="resetForm()">Bersihkan Form</button>
+
+</div>
+
+<!-- TAB 2: HISTORY -->
+<div id="tab-history" class="wrap" style="display:none">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+    <span class="sec-label" style="margin-bottom:0">Riwayat Input (tersimpan lokal)</span>
+    <button class="hist-clear" onclick="clearHistory()">Hapus semua</button>
+  </div>
+  <div class="hist-card" id="history-list">
+    <div class="empty-hist">Belum ada data yang diinput.</div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// CONFIG — Paste URL Apps Script setelah deploy
+// ══════════════════════════════════════════════════════
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby9fDKZQ6QV8AOq9W-BNI7uAfDaCv_XEmCH8B4dXoN-582-aH4m6nLBXrpmZILvkHoz/exec';  // ← paste di sini
+
+// ── STATE ─────────────────────────────────────────────
+let selKat    = '';
+let selStatus = '';
+
+// ── INIT ──────────────────────────────────────────────
+(function(){
+  const d   = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  document.getElementById('inp-tanggal').value =
+    `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+})();
+
+// ── TABS ──────────────────────────────────────────────
+function switchTab(tab){
+  const isForm = tab === 'form';
+  document.getElementById('tab-form').style.display    = isForm ? '' : 'none';
+  document.getElementById('tab-history').style.display = isForm ? 'none' : '';
+  document.getElementById('tab-form-btn').classList.toggle('active', isForm);
+  document.getElementById('tab-hist-btn').classList.toggle('active', !isForm);
+  if(!isForm) renderHistory();
+}
+
+// ── KATEGORI ──────────────────────────────────────────
+function selectKat(btn, val){
+  document.querySelectorAll('.kat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selKat = val;
+  document.getElementById('kat-grid').classList.remove('kat-err');
+}
+
+// ── STATUS ────────────────────────────────────────────
+function selectStatus(val){
+  selStatus = val;
+  const bB = document.getElementById('status-belum');
+  const bS = document.getElementById('status-sudah');
+  bB.className = 'status-btn' + (val==='Belum Survey' ? ' active-belum' : '');
+  bS.className = 'status-btn' + (val==='Sudah Survey' ? ' active-sudah' : '');
+  document.getElementById('status-row').classList.remove('status-err');
+}
+
+// ── ALERT ─────────────────────────────────────────────
+function showAlert(type, msg, autoDismiss=true){
+  const el  = document.getElementById('alert-box');
+  const ico = document.getElementById('alert-ico');
+  document.getElementById('alert-msg').textContent = msg;
+  el.className = 'alert show ' + type;
+  ico.textContent = type==='success' ? '✅' : '❌';
+  el.scrollIntoView({behavior:'smooth',block:'nearest'});
+  if(autoDismiss && type==='success') setTimeout(()=>el.classList.remove('show'), 5000);
+}
+
+// ── VALIDATE ──────────────────────────────────────────
+function validate(){
+  let ok = true;
+  ['inp-tanggal','inp-nama','inp-alamat','inp-tgl-survey'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el.value.trim()){ el.classList.add('err'); ok=false; }
+    else el.classList.remove('err');
+  });
+  if(!selKat){
+    document.getElementById('kat-grid').classList.add('kat-err');
+    ok = false;
+  }
+  if(!selStatus){
+    document.getElementById('status-row').classList.add('status-err');
+    ok = false;
+  }
+  if(!ok) showAlert('error','Lengkapi semua field yang bertanda * dan pilih Kategori serta Status Survey.', false);
+  return ok;
+}
+
+// ── BUILD PAYLOAD ─────────────────────────────────────
+function buildPayload(){
+  const now = new Date();
+  const bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][now.getMonth()];
+  return {
+    timestamp:      now.toISOString(),
+    tanggal_input:  document.getElementById('inp-tanggal').value,
+    bulan,
+    nama_customer:  document.getElementById('inp-nama').value.trim(),
+    alamat:         document.getElementById('inp-alamat').value.trim(),
+    kategori:       selKat,
+    tanggal_survey: document.getElementById('inp-tgl-survey').value,
+    status_survey:  selStatus,
+    link_gmap:      document.getElementById('inp-gmap').value.trim(),
+    pic:            'CS1',
+  };
+}
+
+// ── SUBMIT ────────────────────────────────────────────
+function submitForm(){
+  if(!validate()) return;
+  const payload = buildPayload();
+  const btn = document.getElementById('btn-submit');
+  const lbl = document.getElementById('submit-label');
+  btn.disabled = true;
+  lbl.innerHTML = '<div class="spinner"></div>&nbsp;Mengirim...';
+
+  saveToHistory(payload);
+
+  if(!APPS_SCRIPT_URL){
+    setTimeout(()=>{
+      btn.disabled = false;
+      lbl.textContent = 'Kirim Data ke Spreadsheet';
+      showAlert('success','Data tersimpan lokal. Hubungkan ke Apps Script untuk kirim ke Google Spreadsheet.');
+      resetFields();
+    }, 500);
+    return;
+  }
+
+  fetch(APPS_SCRIPT_URL,{
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify(payload),
+  })
+  .then(res => res.json())
+  .then(res => {
+    btn.disabled = false;
+    lbl.textContent = 'Kirim Data ke Spreadsheet';
+    if(res && res.status === 'ok'){
+      showAlert('success',`Data ${payload.nama_customer} berhasil dikirim ke Google Spreadsheet! (ID: ${res.id||'-'})`);
+      resetFields();
+    } else {
+      showAlert('error','Gagal dikirim: '+(res && res.message ? res.message : 'Response tidak valid dari server.')+' — Data sudah tersimpan lokal, coba kirim ulang.', false);
+    }
+  })
+  .catch(()=>{
+    btn.disabled = false;
+    lbl.textContent = 'Kirim Data ke Spreadsheet';
+    showAlert('error','Gagal mengirim ke sheet. Data sudah tersimpan lokal — coba lagi saat koneksi stabil.', false);
+  });
+}
+
+function resetFields(){
+  ['inp-nama','inp-alamat','inp-tgl-survey','inp-gmap'].forEach(id=>{
+    document.getElementById(id).value='';
+    document.getElementById(id).classList.remove('err');
+  });
+  document.querySelectorAll('.kat-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('status-belum').className='status-btn';
+  document.getElementById('status-sudah').className='status-btn';
+  selKat=''; selStatus='';
+}
+
+function resetForm(){
+  if(!confirm('Bersihkan semua isi form?')) return;
+  resetFields();
+  document.getElementById('alert-box').classList.remove('show');
+}
+
+// ── HISTORY ───────────────────────────────────────────
+const HK = 'cs_form_hist';
+const MO  = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+const DO  = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+
+function saveToHistory(p){
+  try{
+    const h = JSON.parse(localStorage.getItem(HK)||'[]');
+    h.unshift(p);
+    localStorage.setItem(HK, JSON.stringify(h.slice(0,60)));
+  }catch(e){}
+}
+
+function clearHistory(){
+  if(!confirm('Hapus semua riwayat input lokal?')) return;
+  localStorage.removeItem(HK);
+  renderHistory();
+}
+
+function fmtTglSurvey(s){
+  if(!s) return '';
+  const d=new Date(s+'T00:00:00');
+  return `${DO[d.getDay()]} ${d.getDate()} ${MO[d.getMonth()]}`;
+}
+
+function renderHistory(){
+  let hist=[];
+  try{ hist=JSON.parse(localStorage.getItem(HK)||'[]'); }catch(e){}
+  const el = document.getElementById('history-list');
+  if(!hist.length){
+    el.innerHTML='<div class="empty-hist">Belum ada data yang diinput.<br>Data akan muncul di sini setelah form dikirim.</div>';
+    return;
+  }
+  el.innerHTML = hist.slice(0,30).map(h=>{
+    const d  = new Date(h.timestamp);
+    const ts = `${d.getDate()} ${MO[d.getMonth()]} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const stCls = h.status_survey==='Sudah Survey'?'h-ok':'h-no';
+    const gmapLink = h.link_gmap
+      ? `<a href="${h.link_gmap}" target="_blank" style="font-size:9.5px;font-weight:700;color:var(--or);text-decoration:none;padding:2px 9px;border:1px solid var(--or-b);background:var(--or-l);border-radius:20px">🗺️ Maps</a>`
+      : '';
+    return`<div class="hist-item">
+      <div class="hist-head">
+        <span class="hist-name">${h.nama_customer||'—'}</span>
+        <span class="hist-ts">${ts}</span>
+      </div>
+      <div class="hist-addr">📍 ${h.alamat||'—'}</div>
+      <div class="hist-foot">
+        <span class="h-badge h-kat">${h.kategori||'—'}</span>
+        <span class="h-badge ${stCls}">${h.status_survey||'—'}</span>
+        ${h.tanggal_survey?`<span class="h-date">📅 Survey: ${fmtTglSurvey(h.tanggal_survey)}</span>`:''}
+        ${gmapLink}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Blur validation
+['inp-tanggal','inp-nama','inp-alamat','inp-tgl-survey'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el) el.addEventListener('blur',()=>{ if(el.value.trim()) el.classList.remove('err'); });
+});
+
+// ── PWA (Service Worker statis) ─────────────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('./sw.js')
+      .then(function(r){console.log('[SW] OK',r.scope);})
+      .catch(function(e){console.warn('[SW]',e);});
+  });
+}
+</script>
+</body>
+</html>

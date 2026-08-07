@@ -237,7 +237,8 @@ body{font-family:var(--font);background:var(--bg2);color:var(--txt);min-height:1
 // ══════════════════════════════════════════════════════
 // CONFIG — Paste URL Apps Script setelah deploy
 // ══════════════════════════════════════════════════════
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby9fDKZQ6QV8AOq9W-BNI7uAfDaCv_XEmCH8B4dXoN-582-aH4m6nLBXrpmZILvkHoz/exec';  // ← paste di sini
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyDnpS3f-g6OYKjPgCGRlC6s8-8PfUa_dB5Fdce7q5U8WNbakc41PyEn5rzV8fF_rwD0w/exec';  // ← paste di sini
+const APPS_SCRIPT_TOKEN = 'cs1survey';  // ← samain dengan TOKEN di Apps Script
 
 // ── STATE ─────────────────────────────────────────────
 let selKat    = '';
@@ -315,7 +316,9 @@ function buildPayload(){
   const now = new Date();
   const bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][now.getMonth()];
   return {
+    _localId:       'l'+Date.now()+Math.random().toString(36).slice(2,6),
     timestamp:      now.toISOString(),
+    token:          APPS_SCRIPT_TOKEN,
     tanggal_input:  document.getElementById('inp-tanggal').value,
     bulan,
     nama_customer:  document.getElementById('inp-nama').value.trim(),
@@ -328,6 +331,10 @@ function buildPayload(){
   };
 }
 
+function isAppsScriptConfigured(){
+  return APPS_SCRIPT_URL && APPS_SCRIPT_URL.indexOf('GANTI_')!==0;
+}
+
 // ── SUBMIT ────────────────────────────────────────────
 function submitForm(){
   if(!validate()) return;
@@ -337,39 +344,42 @@ function submitForm(){
   btn.disabled = true;
   lbl.innerHTML = '<div class="spinner"></div>&nbsp;Mengirim...';
 
-  saveToHistory(payload);
+  saveToHistory(payload, false); // simpan lokal dulu, status: belum terkirim
 
-  if(!APPS_SCRIPT_URL){
+  if(!isAppsScriptConfigured()){
     setTimeout(()=>{
       btn.disabled = false;
       lbl.textContent = 'Kirim Data ke Spreadsheet';
-      showAlert('success','Data tersimpan lokal. Hubungkan ke Apps Script untuk kirim ke Google Spreadsheet.');
+      showAlert('error','⚠️ Apps Script belum terhubung. Data tersimpan lokal — kirim ulang dari tab Riwayat setelah Apps Script aktif.', false);
       resetFields();
-    }, 500);
+    }, 400);
     return;
   }
 
-  fetch(APPS_SCRIPT_URL,{
-    method:'POST',
-    headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify(payload),
-  })
-  .then(res => res.json())
-  .then(res => {
+  sendToSheet(payload).then(res => {
     btn.disabled = false;
     lbl.textContent = 'Kirim Data ke Spreadsheet';
     if(res && res.status === 'ok'){
+      markSynced(payload._localId);
       showAlert('success',`Data ${payload.nama_customer} berhasil dikirim ke Google Spreadsheet! (ID: ${res.id||'-'})`);
       resetFields();
     } else {
-      showAlert('error','Gagal dikirim: '+(res && res.message ? res.message : 'Response tidak valid dari server.')+' — Data sudah tersimpan lokal, coba kirim ulang.', false);
+      showAlert('error','Gagal dikirim: '+(res && res.message ? res.message : 'Response tidak valid dari server.')+' — Data tersimpan lokal, klik "Kirim Ulang" di tab Riwayat.', false);
     }
-  })
-  .catch(()=>{
+  }).catch(()=>{
     btn.disabled = false;
     lbl.textContent = 'Kirim Data ke Spreadsheet';
-    showAlert('error','Gagal mengirim ke sheet. Data sudah tersimpan lokal — coba lagi saat koneksi stabil.', false);
+    showAlert('error','Gagal mengirim ke sheet. Data tersimpan lokal — klik "Kirim Ulang" di tab Riwayat saat koneksi stabil.', false);
   });
+}
+
+// Dipakai submitForm() maupun tombol "Kirim Ulang" di Riwayat — 1 jalur pengiriman yang sama
+function sendToSheet(payload){
+  return fetch(APPS_SCRIPT_URL,{
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify(payload),
+  }).then(res => res.json());
 }
 
 function resetFields(){
@@ -394,12 +404,46 @@ const HK = 'cs_form_hist';
 const MO  = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 const DO  = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
 
-function saveToHistory(p){
+function saveToHistory(p, synced){
   try{
     const h = JSON.parse(localStorage.getItem(HK)||'[]');
-    h.unshift(p);
+    h.unshift(Object.assign({}, p, { _synced: !!synced }));
     localStorage.setItem(HK, JSON.stringify(h.slice(0,60)));
   }catch(e){}
+}
+
+function markSynced(localId){
+  try{
+    const h = JSON.parse(localStorage.getItem(HK)||'[]');
+    const item = h.find(x => x._localId === localId);
+    if(item) item._synced = true;
+    localStorage.setItem(HK, JSON.stringify(h));
+    if(document.getElementById('tab-history').style.display !== 'none') renderHistory();
+  }catch(e){}
+}
+
+// Kirim ulang 1 data dari Riwayat yang statusnya masih "belum terkirim"
+function resendItem(localId){
+  const h = JSON.parse(localStorage.getItem(HK)||'[]');
+  const item = h.find(x => x._localId === localId);
+  if(!item) return;
+  if(!isAppsScriptConfigured()){ showAlert('error','Apps Script belum terhubung.', false); return; }
+
+  const btn = document.getElementById('resend-'+localId);
+  if(btn){ btn.disabled = true; btn.textContent = 'Mengirim...'; }
+
+  sendToSheet(item).then(res => {
+    if(res && res.status === 'ok'){
+      markSynced(localId);
+      showAlert('success', `Data ${item.nama_customer} berhasil dikirim ulang! (ID: ${res.id||'-'})`);
+    } else {
+      if(btn){ btn.disabled = false; btn.textContent = '🔄 Kirim Ulang'; }
+      showAlert('error','Gagal kirim ulang: '+(res && res.message ? res.message : 'Response tidak valid.'), false);
+    }
+  }).catch(()=>{
+    if(btn){ btn.disabled = false; btn.textContent = '🔄 Kirim Ulang'; }
+    showAlert('error','Gagal konek ke server. Coba lagi nanti.', false);
+  });
 }
 
 function clearHistory(){
@@ -429,6 +473,12 @@ function renderHistory(){
     const gmapLink = h.link_gmap
       ? `<a href="${h.link_gmap}" target="_blank" style="font-size:9.5px;font-weight:700;color:var(--or);text-decoration:none;padding:2px 9px;border:1px solid var(--or-b);background:var(--or-l);border-radius:20px">🗺️ Maps</a>`
       : '';
+    const syncBadge = h._synced
+      ? `<span class="h-badge" style="background:var(--grn-l);color:var(--grn);border:1px solid var(--grn-b)">✅ Terkirim</span>`
+      : `<span class="h-badge" style="background:var(--red-l);color:var(--red);border:1px solid var(--red-b)">⚠️ Belum Terkirim</span>`;
+    const resendBtn = (!h._synced && h._localId)
+      ? `<button id="resend-${h._localId}" onclick="resendItem('${h._localId}')" style="font-size:9.5px;font-weight:700;color:#fff;background:var(--or);border:none;padding:3px 10px;border-radius:20px;cursor:pointer">🔄 Kirim Ulang</button>`
+      : '';
     return`<div class="hist-item">
       <div class="hist-head">
         <span class="hist-name">${h.nama_customer||'—'}</span>
@@ -436,10 +486,12 @@ function renderHistory(){
       </div>
       <div class="hist-addr">📍 ${h.alamat||'—'}</div>
       <div class="hist-foot">
+        ${syncBadge}
         <span class="h-badge h-kat">${h.kategori||'—'}</span>
         <span class="h-badge ${stCls}">${h.status_survey||'—'}</span>
         ${h.tanggal_survey?`<span class="h-date">📅 Survey: ${fmtTglSurvey(h.tanggal_survey)}</span>`:''}
         ${gmapLink}
+        ${resendBtn}
       </div>
     </div>`;
   }).join('');

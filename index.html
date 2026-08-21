@@ -239,6 +239,12 @@ body{font-family:var(--font);background:var(--bg2);color:var(--txt);min-height:1
 // ══════════════════════════════════════════════════════
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyDnpS3f-g6OYKjPgCGRlC6s8-8PfUa_dB5Fdce7q5U8WNbakc41PyEn5rzV8fF_rwD0w/exec';  // ← paste di sini
 const APPS_SCRIPT_TOKEN = 'cs1survey';  // ← samain dengan TOKEN di Apps Script
+// Sheet ID yang SAMA dengan yang ditulis Apps Script — dibaca balik
+// biar tab Riwayat nunjukin data yang IDENTIK di device manapun, bukan
+// cuma ngandelin localStorage HP masing-masing (lihat SHEET_NAME juga
+// harus persis "CS Survey Data", sama kayak di Apps Script).
+const SHEET_ID = '1VIPpaOX0poabAJ2hkFlIOKfvTux4p0vuypfZdkExvag';
+const SHEET_NAME = 'CS Survey Data';
 
 // ── STATE ─────────────────────────────────────────────
 let selKat    = '';
@@ -468,43 +474,136 @@ function fmtTglSurvey(s){
   return `${DO[d.getDay()]} ${d.getDate()} ${MO[d.getMonth()]}`;
 }
 
-function renderHistory(){
-  let hist=[];
-  try{ hist=JSON.parse(localStorage.getItem(HK)||'[]'); }catch(e){}
+function isSheetReadConfigured(){
+  return SHEET_ID && SHEET_ID.indexOf('GANTI_')!==0;
+}
+
+// Baca balik Sheet yang sama tempat Apps Script nulis — dipakai biar
+// tab Riwayat nunjukin data yang SAMA PERSIS gak peduli dibuka dari
+// device mana. Pola JSONP standar, sama kayak dashboard-dashboard lain.
+function gvizFetchSheet(){
+  return new Promise((resolve,reject)=>{
+    const cb='gvizCb_'+Math.random().toString(36).slice(2);
+    const timeout=setTimeout(()=>{cleanup();reject(new Error('timeout'));},10000);
+    function cleanup(){clearTimeout(timeout);delete window[cb];if(script.parentNode)script.parentNode.removeChild(script);}
+    window[cb]=function(resp){
+      cleanup();
+      if(!resp||resp.status==='error'){reject(new Error('Gagal baca sheet.'));return;}
+      resolve(resp.table);
+    };
+    const script=document.createElement('script');
+    script.src=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json;responseHandler:${cb}&sheet=${encodeURIComponent(SHEET_NAME)}`;
+    script.onerror=()=>{cleanup();reject(new Error('Gagal load sheet.'));};
+    document.head.appendChild(script);
+  });
+}
+
+// Kolom sheet (sesuai HEADER di Apps Script):
+// 0 Timestamp,1 TanggalInput,2 Bulan,3 NamaCustomer,4 Alamat,5 Kategori,
+// 6 TanggalSurvey,7 StatusSurvey,8 LinkGmap,9 PIC,10 LocalID
+function parseSheetRows(table){
+  if(!table||!table.rows) return [];
+  return table.rows.map(row=>{
+    const c=row.c||[];
+    const get=i=>{ const cell=c[i]; return cell&&cell.v!=null ? String(cell.v) : ''; };
+    return {
+      timestamp: get(0), tanggal_input: get(1), bulan: get(2),
+      nama_customer: get(3), alamat: get(4), kategori: get(5),
+      tanggal_survey: get(6), status_survey: get(7), link_gmap: get(8),
+      pic: get(9), _localId: get(10),
+    };
+  }).filter(r=>r.nama_customer);
+}
+
+function histItemHtml(h, isPending){
+  const d = h.timestamp ? new Date(h.timestamp) : null;
+  const ts = d && !isNaN(d) ? `${d.getDate()} ${MO[d.getMonth()]} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}` : (h.tanggal_input||'—');
+  const stCls = h.status_survey==='Sudah Survey'?'h-ok':'h-no';
+  const gmapLink = h.link_gmap
+    ? `<a href="${h.link_gmap}" target="_blank" style="font-size:9.5px;font-weight:700;color:var(--or);text-decoration:none;padding:2px 9px;border:1px solid var(--or-b);background:var(--or-l);border-radius:20px">🗺️ Maps</a>`
+    : '';
+  const syncBadge = isPending
+    ? `<span class="h-badge" style="background:var(--red-l);color:var(--red);border:1px solid var(--red-b)">⚠️ Belum Terkirim</span>`
+    : `<span class="h-badge" style="background:var(--grn-l);color:var(--grn);border:1px solid var(--grn-b)">✅ Terkirim</span>`;
+  const resendBtn = (isPending && h._localId)
+    ? `<button id="resend-${h._localId}" onclick="resendItem('${h._localId}')" style="font-size:9.5px;font-weight:700;color:#fff;background:var(--or);border:none;padding:3px 10px;border-radius:20px;cursor:pointer">🔄 Kirim Ulang</button>`
+    : '';
+  return`<div class="hist-item">
+    <div class="hist-head">
+      <span class="hist-name">${h.nama_customer||'—'}</span>
+      <span class="hist-ts">${ts}</span>
+    </div>
+    <div class="hist-addr">📍 ${h.alamat||'—'}</div>
+    <div class="hist-foot">
+      ${syncBadge}
+      <span class="h-badge h-kat">${h.kategori||'—'}</span>
+      <span class="h-badge ${stCls}">${h.status_survey||'—'}</span>
+      ${h.tanggal_survey?`<span class="h-date">📅 Survey: ${fmtTglSurvey(h.tanggal_survey)}</span>`:''}
+      ${gmapLink}
+      ${resendBtn}
+    </div>
+  </div>`;
+}
+
+async function renderHistory(){
   const el = document.getElementById('history-list');
-  if(!hist.length){
-    el.innerHTML='<div class="empty-hist">Belum ada data yang diinput.<br>Data akan muncul di sini setelah form dikirim.</div>';
+  el.innerHTML = '<div class="empty-hist">Memuat riwayat...</div>';
+
+  // Data lokal (draft yang belum/gagal terkirim, per-device)
+  let localHist=[];
+  try{ localHist=JSON.parse(localStorage.getItem(HK)||'[]'); }catch(e){}
+  let pending = localHist.filter(h=>!h._synced);
+
+  if(!isSheetReadConfigured()){
+    // Fallback: Sheet ID belum ditanam, tampilin apa adanya dari lokal
+    // (perilaku lama) biar app tetep kepake sambil nunggu config lengkap.
+    if(!localHist.length){
+      el.innerHTML='<div class="empty-hist">Belum ada data yang diinput.<br>Data akan muncul di sini setelah form dikirim.</div>';
+      return;
+    }
+    el.innerHTML = localHist.slice(0,30).map(h=>histItemHtml(h, !h._synced)).join('');
     return;
   }
-  el.innerHTML = hist.slice(0,30).map(h=>{
-    const d  = new Date(h.timestamp);
-    const ts = `${d.getDate()} ${MO[d.getMonth()]} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-    const stCls = h.status_survey==='Sudah Survey'?'h-ok':'h-no';
-    const gmapLink = h.link_gmap
-      ? `<a href="${h.link_gmap}" target="_blank" style="font-size:9.5px;font-weight:700;color:var(--or);text-decoration:none;padding:2px 9px;border:1px solid var(--or-b);background:var(--or-l);border-radius:20px">🗺️ Maps</a>`
-      : '';
-    const syncBadge = h._synced
-      ? `<span class="h-badge" style="background:var(--grn-l);color:var(--grn);border:1px solid var(--grn-b)">✅ Terkirim</span>`
-      : `<span class="h-badge" style="background:var(--red-l);color:var(--red);border:1px solid var(--red-b)">⚠️ Belum Terkirim</span>`;
-    const resendBtn = (!h._synced && h._localId)
-      ? `<button id="resend-${h._localId}" onclick="resendItem('${h._localId}')" style="font-size:9.5px;font-weight:700;color:#fff;background:var(--or);border:none;padding:3px 10px;border-radius:20px;cursor:pointer">🔄 Kirim Ulang</button>`
-      : '';
-    return`<div class="hist-item">
-      <div class="hist-head">
-        <span class="hist-name">${h.nama_customer||'—'}</span>
-        <span class="hist-ts">${ts}</span>
-      </div>
-      <div class="hist-addr">📍 ${h.alamat||'—'}</div>
-      <div class="hist-foot">
-        ${syncBadge}
-        <span class="h-badge h-kat">${h.kategori||'—'}</span>
-        <span class="h-badge ${stCls}">${h.status_survey||'—'}</span>
-        ${h.tanggal_survey?`<span class="h-date">📅 Survey: ${fmtTglSurvey(h.tanggal_survey)}</span>`:''}
-        ${gmapLink}
-        ${resendBtn}
-      </div>
-    </div>`;
-  }).join('');
+
+  let sheetRows=[];
+  try{
+    const table = await gvizFetchSheet();
+    sheetRows = parseSheetRows(table);
+  }catch(e){
+    el.innerHTML = `<div class="empty-hist">⚠️ Gagal memuat riwayat dari server (${e.message}).<br>Menampilkan data lokal saja.</div>`
+      + localHist.slice(0,30).map(h=>histItemHtml(h, !h._synced)).join('');
+    return;
+  }
+
+  // Self-healing: kalau ada draft lokal yang dikira "belum terkirim"
+  // tapi ternyata Local ID-nya UDAH ADA di sheet (kasus klasik: HP
+  // sempat timeout padahal server udah berhasil nulis), tandai
+  // sinkron di lokal juga — biar gak ke-tampil "belum terkirim" lagi
+  // dan gak ada yang salah pencet "Kirim Ulang" buat data yang udah aman.
+  const sheetLocalIds = new Set(sheetRows.map(r=>r._localId).filter(Boolean));
+  let healed=false;
+  localHist.forEach(h=>{
+    if(!h._synced && h._localId && sheetLocalIds.has(h._localId)){
+      h._synced = true; healed=true;
+    }
+  });
+  if(healed){
+    try{ localStorage.setItem(HK, JSON.stringify(localHist)); }catch(e){}
+    pending = localHist.filter(h=>!h._synced);
+  }
+
+  let html='';
+  if(pending.length){
+    html += `<div style="font-size:11px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.03em;margin:4px 0 8px">⚠️ Belum Terkirim (${pending.length}) — di device ini</div>`;
+    html += pending.map(h=>histItemHtml(h, true)).join('');
+  }
+  html += `<div style="font-size:11px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.03em;margin:16px 0 8px">✅ Riwayat Terkirim — sama di semua device</div>`;
+  if(sheetRows.length){
+    html += sheetRows.slice(-30).reverse().map(h=>histItemHtml(h, false)).join('');
+  } else {
+    html += `<div class="empty-hist">Belum ada data terkirim.</div>`;
+  }
+  el.innerHTML = html;
 }
 
 // Blur validation

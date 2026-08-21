@@ -2,7 +2,7 @@
 // File statis, permanen di repo. Bikin Android bisa mengenali app ini
 // sebagai PWA yang bisa diinstall permanen (bukan sekadar shortcut).
 
-const CACHE = 'cs-form-v1';
+const CACHE = 'cs-form-v2';
 
 self.addEventListener('install', function (e) {
   e.waitUntil(

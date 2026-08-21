@@ -364,22 +364,32 @@ function submitForm(){
       showAlert('success',`Data ${payload.nama_customer} berhasil dikirim ke Google Spreadsheet! (ID: ${res.id||'-'})`);
       resetFields();
     } else {
-      showAlert('error','Gagal dikirim: '+(res && res.message ? res.message : 'Response tidak valid dari server.')+' — Data tersimpan lokal, klik "Kirim Ulang" di tab Riwayat.', false);
+      showAlert('error','Gagal dikirim: '+(res && res.message ? res.message : 'Response tidak valid dari server.')+' — Data tersimpan lokal, klik "Kirim Ulang" di tab Riwayat. JANGAN input ulang manual dari form.', false);
     }
   }).catch(()=>{
     btn.disabled = false;
     lbl.textContent = 'Kirim Data ke Spreadsheet';
-    showAlert('error','Gagal mengirim ke sheet. Data tersimpan lokal — klik "Kirim Ulang" di tab Riwayat saat koneksi stabil.', false);
+    showAlert('error','⚠️ Koneksi lambat/terputus — TAPI data kamu kemungkinan besar SUDAH tersimpan di spreadsheet (server sering tetap memproses meski jawabannya gak sempat balik ke HP). Data ini juga tersimpan lokal. JANGAN isi ulang dari form — buka tab Riwayat, klik "Kirim Ulang" di data ini. Sistem otomatis mencegah data kembar kalau ternyata sudah tersimpan.', false);
   });
 }
 
-// Dipakai submitForm() maupun tombol "Kirim Ulang" di Riwayat — 1 jalur pengiriman yang sama
+// Dipakai submitForm() maupun tombol "Kirim Ulang" di Riwayat — 1 jalur pengiriman yang sama.
+// Dikasih batas waktu tunggu eksplisit (25 detik) — kalau Apps Script
+// kelamaan gak balik jawaban, mending kasih tau jelas drpd HP nge-hang
+// nunggu tanpa kepastian. Data yang udah kekirim sebelum timeout TETEP
+// bisa aja ke-proses di server (lihat catatan di showAlert error di
+// bawah) — makanya Apps Script sekarang punya proteksi anti-duplikat
+// sendiri via _localId, jadi aman walau di-retry.
 function sendToSheet(payload){
+  const controller = new AbortController();
+  const timeoutId = setTimeout(()=>controller.abort(), 25000);
   return fetch(APPS_SCRIPT_URL,{
     method:'POST',
     headers:{'Content-Type':'text/plain;charset=utf-8'},
     body: JSON.stringify(payload),
-  }).then(res => res.json());
+    signal: controller.signal,
+  }).then(res => res.json())
+    .finally(()=>clearTimeout(timeoutId));
 }
 
 function resetFields(){

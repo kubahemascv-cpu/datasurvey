@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
 <title>CS Input Form — Kumasindo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <meta name="theme-color" content="#C43E08">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -96,19 +97,29 @@ body{font-family:var(--font);background:var(--bg2);color:var(--txt);min-height:1
 .hist-card{background:var(--bg);border-radius:var(--r);box-shadow:var(--shd);border:1px solid var(--bdr);overflow:hidden}
 .hist-item{padding:13px 16px;border-bottom:1px solid var(--bdr)}
 .hist-item:last-child{border-bottom:none}
-.hist-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:4px}
-.hist-name{font-size:13.5px;font-weight:700;color:var(--txt);flex:1}
-.hist-ts{font-size:10px;color:var(--mut);white-space:nowrap;margin-top:2px}
-.hist-addr{font-size:11.5px;color:var(--txt2);margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.hist-foot{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.h-badge{font-size:9.5px;font-weight:700;padding:2px 9px;border-radius:20px}
-.h-kat{background:var(--or-l);color:var(--or-d);border:1px solid var(--or-b)}
-.h-ok{background:var(--grn-l);color:var(--grn);border:1px solid var(--grn-b)}
-.h-no{background:#FFFBEB;color:#92400E;border:1px solid #FDE68A}
-.h-date{font-size:10px;color:var(--mut);font-weight:500}
+.hist-nama{font-size:14px;font-weight:700;color:var(--txt);margin-bottom:5px}
+.hist-line{font-size:12px;color:var(--txt2);margin-bottom:4px;line-height:1.5;display:flex;align-items:center;gap:6px}
+.hist-line:last-child{margin-bottom:0}
+.hist-line a{color:var(--or);font-weight:600;text-decoration:none}
+.hist-status{font-size:11.5px;font-weight:700;padding:3px 0}
+.hist-status.ok{color:var(--grn)}
+.hist-status.no{color:var(--red)}
+.month-group{margin-bottom:16px}
+.month-group:last-child{margin-bottom:0}
+.month-bracket{font-size:12px;font-weight:800;color:var(--txt);background:var(--card2,#F4F4F4);padding:8px 14px;border-radius:8px 8px 0 0;border:1px solid var(--bdr);border-bottom:none}
+.month-bracket .hist-card{border-radius:0 0 var(--r) var(--r)}
 .empty-hist{padding:28px 16px;text-align:center;color:var(--mut);font-size:12.5px;line-height:1.6}
 .sec-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);display:block;margin-bottom:8px}
 .hist-clear{font-size:11px;font-weight:600;color:var(--mut);background:none;border:none;cursor:pointer;font-family:var(--font);text-decoration:underline;display:block;margin:10px auto 0;opacity:.7}
+
+.stats-filter-card{margin-bottom:14px}
+.stats-select{width:100%;padding:11px 13px;border:1.5px solid var(--bdr);border-radius:10px;font-size:13px;color:var(--txt);background:var(--bg);outline:none;margin-bottom:8px}
+.stats-kpi-card{background:linear-gradient(135deg,var(--or),var(--or-d));border-radius:var(--r);padding:24px;text-align:center;margin-bottom:16px;box-shadow:var(--shd)}
+.stats-kpi-val{font-size:40px;font-weight:800;color:#fff;line-height:1}
+.stats-kpi-lbl{font-size:12px;color:rgba(255,255,255,.85);font-weight:600;margin-top:6px}
+.stats-chart-card{background:var(--bg);border-radius:var(--r);box-shadow:var(--shd);border:1px solid var(--bdr);padding:16px}
+.stats-chart-title{font-size:12.5px;font-weight:700;color:var(--txt);margin-bottom:12px}
+.stats-chart-box{position:relative;height:240px}
 </style>
 </head>
 <body>
@@ -126,6 +137,7 @@ body{font-family:var(--font);background:var(--bg2);color:var(--txt);min-height:1
   <div class="tab-bar">
     <button class="tab-btn active" id="tab-form-btn" onclick="switchTab('form')">📝 Input Data</button>
     <button class="tab-btn" id="tab-hist-btn" onclick="switchTab('history')">🕐 Riwayat</button>
+    <button class="tab-btn" id="tab-stats-btn" onclick="switchTab('stats')">📊 Statistik</button>
   </div>
 </div>
 
@@ -225,11 +237,38 @@ body{font-family:var(--font);background:var(--bg2);color:var(--txt);min-height:1
 <!-- TAB 2: HISTORY -->
 <div id="tab-history" class="wrap" style="display:none">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-    <span class="sec-label" style="margin-bottom:0">Riwayat Input (tersimpan lokal)</span>
+    <span class="sec-label" style="margin-bottom:0">Riwayat Input</span>
     <button class="hist-clear" onclick="clearHistory()">Hapus semua</button>
   </div>
-  <div class="hist-card" id="history-list">
-    <div class="empty-hist">Belum ada data yang diinput.</div>
+  <div id="history-list">
+    <div class="hist-card"><div class="empty-hist">Belum ada data yang diinput.</div></div>
+  </div>
+</div>
+
+<!-- TAB 3: STATISTIK -->
+<div id="tab-stats" class="wrap" style="display:none">
+  <span class="sec-label">Statistik Jumlah Data Masuk</span>
+
+  <div class="stats-filter-card">
+    <select id="stats-period" class="stats-select" onchange="onStatsPeriodChange()">
+      <option value="today">Hari ini</option>
+      <option value="week">Minggu ini</option>
+      <option value="month" selected>Bulan ini</option>
+      <option value="2month">2 Bulan ini</option>
+      <option value="year">Tahun ini</option>
+      <option value="custom">Bulan Custom...</option>
+    </select>
+    <input type="month" id="stats-custom-month" class="stats-select" style="display:none" onchange="loadStatistik()">
+  </div>
+
+  <div class="stats-kpi-card">
+    <div class="stats-kpi-val" id="stats-total">—</div>
+    <div class="stats-kpi-lbl" id="stats-period-label">Jumlah Data Masuk</div>
+  </div>
+
+  <div class="stats-chart-card">
+    <div class="stats-chart-title">Data Masuk per Hari</div>
+    <div class="stats-chart-box"><canvas id="statsChart"></canvas></div>
   </div>
 </div>
 
@@ -260,12 +299,14 @@ let selStatus = '';
 
 // ── TABS ──────────────────────────────────────────────
 function switchTab(tab){
-  const isForm = tab === 'form';
-  document.getElementById('tab-form').style.display    = isForm ? '' : 'none';
-  document.getElementById('tab-history').style.display = isForm ? 'none' : '';
-  document.getElementById('tab-form-btn').classList.toggle('active', isForm);
-  document.getElementById('tab-hist-btn').classList.toggle('active', !isForm);
-  if(!isForm) renderHistory();
+  document.getElementById('tab-form').style.display    = tab==='form' ? '' : 'none';
+  document.getElementById('tab-history').style.display = tab==='history' ? '' : 'none';
+  document.getElementById('tab-stats').style.display   = tab==='stats' ? '' : 'none';
+  document.getElementById('tab-form-btn').classList.toggle('active', tab==='form');
+  document.getElementById('tab-hist-btn').classList.toggle('active', tab==='history');
+  document.getElementById('tab-stats-btn').classList.toggle('active', tab==='stats');
+  if(tab==='history') renderHistory();
+  if(tab==='stats') loadStatistik();
 }
 
 // ── KATEGORI ──────────────────────────────────────────
@@ -419,6 +460,14 @@ function resetForm(){
 const HK = 'cs_form_hist';
 const MO  = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 const DO  = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+const MONTH_FULL = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const DAY_FULL   = ['Minggu','Senin','Selasa','Rabu','Kamis',"Jum'at",'Sabtu'];
+function fmtTglSurveyFull(s){
+  if(!s) return '—';
+  const d=new Date(s.slice(0,10)+'T00:00:00');
+  if(isNaN(d)) return s; // fallback tampilin apa adanya drpd 'undefined NaN'
+  return `${DAY_FULL[d.getDay()]}, ${d.getDate()} ${MONTH_FULL[d.getMonth()]} ${d.getFullYear()}`;
+}
 
 function saveToHistory(p, synced){
   try{
@@ -478,6 +527,17 @@ function isSheetReadConfigured(){
   return SHEET_ID && SHEET_ID.indexOf('GANTI_')!==0;
 }
 
+// Google Sheets kadang otomatis mendeteksi teks tanggal jadi tipe Date
+// asli, dan gviz balikin format aneh "Date(2026,7,14)" (bulan 0-indexed)
+// bukan teks "2026-07-14" biasa. Fungsi ini nyeragamin dua-duanya.
+function gvDateStr(v){
+  if(v===null||v===undefined||v==='') return '';
+  const s=String(v);
+  const m=s.match(/^Date\((\d+),(\d+),(\d+)/);
+  if(m) return m[1]+'-'+String(parseInt(m[2],10)+1).padStart(2,'0')+'-'+String(parseInt(m[3],10)).padStart(2,'0');
+  return s;
+}
+
 // Baca balik Sheet yang sama tempat Apps Script nulis — dipakai biar
 // tab Riwayat nunjukin data yang SAMA PERSIS gak peduli dibuka dari
 // device mana. Pola JSONP standar, sama kayak dashboard-dashboard lain.
@@ -498,56 +558,58 @@ function gvizFetchSheet(){
   });
 }
 
-// Kolom sheet (sesuai HEADER di Apps Script):
-// 0 Timestamp,1 TanggalInput,2 Bulan,3 NamaCustomer,4 Alamat,5 Kategori,
-// 6 TanggalSurvey,7 StatusSurvey,8 LinkGmap,9 PIC,10 LocalID
+// Kolom sheet — DIVERIFIKASI LANGSUNG dari data asli (ada kolom "Unique
+// Kode" di paling depan yang sebelumnya kelewat):
+// 0 UniqueKode,1 Timestamp,2 TanggalInput,3 Bulan,4 NamaCustomer,
+// 5 Alamat,6 Kategori,7 TanggalSurvey,8 StatusSurvey,9 LinkGmap,10 PIC,
+// 11 LocalID (baris lama sebelum fitur anti-duplikat mungkin kosong di sini)
 function parseSheetRows(table){
   if(!table||!table.rows) return [];
   return table.rows.map(row=>{
     const c=row.c||[];
     const get=i=>{ const cell=c[i]; return cell&&cell.v!=null ? String(cell.v) : ''; };
     return {
-      timestamp: get(0), tanggal_input: get(1), bulan: get(2),
-      nama_customer: get(3), alamat: get(4), kategori: get(5),
-      tanggal_survey: get(6), status_survey: get(7), link_gmap: get(8),
-      pic: get(9), _localId: get(10),
+      unique_kode: get(0), timestamp: get(1), tanggal_input: gvDateStr(get(2)), bulan: get(3),
+      nama_customer: get(4), alamat: get(5), kategori: get(6),
+      tanggal_survey: gvDateStr(get(7)), status_survey: get(8), link_gmap: get(9),
+      pic: get(10), _localId: get(11),
     };
   }).filter(r=>r.nama_customer);
 }
 
 function histItemHtml(h, isPending){
-  const d = h.timestamp ? new Date(h.timestamp) : null;
-  const ts = d && !isNaN(d) ? `${d.getDate()} ${MO[d.getMonth()]} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}` : (h.tanggal_input||'—');
-  const stCls = h.status_survey==='Sudah Survey'?'h-ok':'h-no';
-  const gmapLink = h.link_gmap
-    ? `<a href="${h.link_gmap}" target="_blank" style="font-size:9.5px;font-weight:700;color:var(--or);text-decoration:none;padding:2px 9px;border:1px solid var(--or-b);background:var(--or-l);border-radius:20px">🗺️ Maps</a>`
-    : '';
-  const syncBadge = isPending
-    ? `<span class="h-badge" style="background:var(--red-l);color:var(--red);border:1px solid var(--red-b)">⚠️ Belum Terkirim</span>`
-    : `<span class="h-badge" style="background:var(--grn-l);color:var(--grn);border:1px solid var(--grn-b)">✅ Terkirim</span>`;
   const resendBtn = (isPending && h._localId)
-    ? `<button id="resend-${h._localId}" onclick="resendItem('${h._localId}')" style="font-size:9.5px;font-weight:700;color:#fff;background:var(--or);border:none;padding:3px 10px;border-radius:20px;cursor:pointer">🔄 Kirim Ulang</button>`
+    ? `<button id="resend-${h._localId}" onclick="resendItem('${h._localId}')" style="font-size:9.5px;font-weight:700;color:#fff;background:var(--or);border:none;padding:4px 12px;border-radius:20px;cursor:pointer;margin-top:6px">🔄 Kirim Ulang</button>`
     : '';
   return`<div class="hist-item">
-    <div class="hist-head">
-      <span class="hist-name">${h.nama_customer||'—'}</span>
-      <span class="hist-ts">${ts}</span>
-    </div>
-    <div class="hist-addr">📍 ${h.alamat||'—'}</div>
-    <div class="hist-foot">
-      ${syncBadge}
-      <span class="h-badge h-kat">${h.kategori||'—'}</span>
-      <span class="h-badge ${stCls}">${h.status_survey||'—'}</span>
-      ${h.tanggal_survey?`<span class="h-date">📅 Survey: ${fmtTglSurvey(h.tanggal_survey)}</span>`:''}
-      ${gmapLink}
-      ${resendBtn}
-    </div>
+    <div class="hist-nama">${h.nama_customer||'—'}</div>
+    <div class="hist-line">📍 ${h.alamat||'—'}</div>
+    <div class="hist-line">📅 ${fmtTglSurveyFull(h.tanggal_survey)}</div>
+    <div class="hist-line">${h.link_gmap?`🗺️ <a href="${h.link_gmap}" target="_blank">Lihat di Google Maps</a>`:'🗺️ —'}</div>
+    <div class="hist-status ${isPending?'no':'ok'}">${isPending?'⚠️ Data Tidak Terkirim':'✅ Data Terkirim'}</div>
+    ${resendBtn}
   </div>`;
+}
+
+// Kelompokin baris-baris riwayat per bulan (dari tanggal_input), biar
+// "Agustus" cs muncul SEKALI aja sebagai judul bracket, bukan diulang
+// di tiap kartu. Urut dari bulan terbaru duluan.
+function groupByMonth(rows){
+  const groups={};
+  rows.forEach(r=>{
+    const raw=(r.tanggal_input||r.timestamp||'').slice(0,10);
+    const d=new Date(raw+'T00:00:00');
+    const key=isNaN(d) ? 'unknown' : d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    const label=isNaN(d) ? 'Tanggal Tidak Diketahui' : `${MONTH_FULL[d.getMonth()]} ${d.getFullYear()}`;
+    if(!groups[key]) groups[key]={label,items:[]};
+    groups[key].items.push(r);
+  });
+  return Object.keys(groups).sort((a,b)=>b.localeCompare(a)).map(k=>groups[k]);
 }
 
 async function renderHistory(){
   const el = document.getElementById('history-list');
-  el.innerHTML = '<div class="empty-hist">Memuat riwayat...</div>';
+  el.innerHTML = '<div class="hist-card"><div class="empty-hist">Memuat riwayat...</div></div>';
 
   // Data lokal (draft yang belum/gagal terkirim, per-device)
   let localHist=[];
@@ -558,10 +620,10 @@ async function renderHistory(){
     // Fallback: Sheet ID belum ditanam, tampilin apa adanya dari lokal
     // (perilaku lama) biar app tetep kepake sambil nunggu config lengkap.
     if(!localHist.length){
-      el.innerHTML='<div class="empty-hist">Belum ada data yang diinput.<br>Data akan muncul di sini setelah form dikirim.</div>';
+      el.innerHTML='<div class="hist-card"><div class="empty-hist">Belum ada data yang diinput.<br>Data akan muncul di sini setelah form dikirim.</div></div>';
       return;
     }
-    el.innerHTML = localHist.slice(0,30).map(h=>histItemHtml(h, !h._synced)).join('');
+    el.innerHTML = '<div class="hist-card">' + localHist.slice(0,30).map(h=>histItemHtml(h, !h._synced)).join('') + '</div>';
     return;
   }
 
@@ -570,8 +632,8 @@ async function renderHistory(){
     const table = await gvizFetchSheet();
     sheetRows = parseSheetRows(table);
   }catch(e){
-    el.innerHTML = `<div class="empty-hist">⚠️ Gagal memuat riwayat dari server (${e.message}).<br>Menampilkan data lokal saja.</div>`
-      + localHist.slice(0,30).map(h=>histItemHtml(h, !h._synced)).join('');
+    el.innerHTML = `<div class="hist-card"><div class="empty-hist">⚠️ Gagal memuat riwayat dari server (${e.message}).<br>Menampilkan data lokal saja.</div>`
+      + localHist.slice(0,30).map(h=>histItemHtml(h, !h._synced)).join('') + `</div>`;
     return;
   }
 
@@ -594,14 +656,19 @@ async function renderHistory(){
 
   let html='';
   if(pending.length){
-    html += `<div style="font-size:11px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.03em;margin:4px 0 8px">⚠️ Belum Terkirim (${pending.length}) — di device ini</div>`;
-    html += pending.map(h=>histItemHtml(h, true)).join('');
+    html += `<div style="font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.03em;margin:4px 0 8px">⚠️ Belum Terkirim (${pending.length}) — di device ini</div>`;
+    html += `<div class="hist-card" style="margin-bottom:16px">` + pending.map(h=>histItemHtml(h, true)).join('') + `</div>`;
   }
-  html += `<div style="font-size:11px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.03em;margin:16px 0 8px">✅ Riwayat Terkirim — sama di semua device</div>`;
+  html += `<div style="font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.03em;margin:16px 0 10px">✅ Riwayat Terkirim — sama di semua device</div>`;
   if(sheetRows.length){
-    html += sheetRows.slice(-30).reverse().map(h=>histItemHtml(h, false)).join('');
+    const monthGroups = groupByMonth(sheetRows.slice().reverse());
+    html += monthGroups.map(g=>`
+      <div class="month-group">
+        <div class="month-bracket">${g.label} (${g.items.length})</div>
+        <div class="hist-card">${g.items.map(h=>histItemHtml(h, false)).join('')}</div>
+      </div>`).join('');
   } else {
-    html += `<div class="empty-hist">Belum ada data terkirim.</div>`;
+    html += `<div class="hist-card"><div class="empty-hist">Belum ada data terkirim.</div></div>`;
   }
   el.innerHTML = html;
 }
@@ -611,6 +678,108 @@ async function renderHistory(){
   const el=document.getElementById(id);
   if(el) el.addEventListener('blur',()=>{ if(el.value.trim()) el.classList.remove('err'); });
 });
+
+// ══════════════════════════════════════════════════════
+// TAB 3: STATISTIK — jumlah data masuk per periode
+// ══════════════════════════════════════════════════════
+let statsChartInstance = null;
+
+function onStatsPeriodChange(){
+  const v = document.getElementById('stats-period').value;
+  document.getElementById('stats-custom-month').style.display = v==='custom' ? 'block' : 'none';
+  if(v!=='custom') loadStatistik();
+}
+
+function statsDstr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+function getStatsRange(){
+  const v = document.getElementById('stats-period').value;
+  const now = new Date(); now.setHours(0,0,0,0);
+  const today = statsDstr(now);
+
+  if(v==='today') return {from:today, to:today, label:'Hari Ini'};
+  if(v==='week'){
+    const day=now.getDay(); const diff=day===0?-6:1-day;
+    const from=new Date(now); from.setDate(from.getDate()+diff);
+    return {from:statsDstr(from), to:today, label:'Minggu Ini'};
+  }
+  if(v==='month'){
+    const from=new Date(now.getFullYear(), now.getMonth(), 1);
+    return {from:statsDstr(from), to:today, label:`${MONTH_FULL[now.getMonth()]} ${now.getFullYear()}`};
+  }
+  if(v==='2month'){
+    const from=new Date(now.getFullYear(), now.getMonth()-1, 1);
+    return {from:statsDstr(from), to:today, label:'2 Bulan Terakhir'};
+  }
+  if(v==='year'){
+    const from=new Date(now.getFullYear(), 0, 1);
+    return {from:statsDstr(from), to:today, label:`Tahun ${now.getFullYear()}`};
+  }
+  if(v==='custom'){
+    const mval=document.getElementById('stats-custom-month').value; // "2026-08"
+    if(!mval) return {from:null, to:null, label:'—'};
+    const [y,m]=mval.split('-').map(Number);
+    const from=new Date(y, m-1, 1);
+    const to=new Date(y, m, 0); // hari terakhir bulan itu
+    return {from:statsDstr(from), to:statsDstr(to), label:`${MONTH_FULL[m-1]} ${y}`};
+  }
+  return {from:today, to:today, label:'—'};
+}
+
+async function loadStatistik(){
+  const {from, to, label} = getStatsRange();
+  document.getElementById('stats-total').textContent = '...';
+  document.getElementById('stats-period-label').textContent = 'Jumlah Data Masuk — '+label;
+
+  if(!from || !to){
+    document.getElementById('stats-total').textContent = '—';
+    document.getElementById('stats-period-label').textContent = 'Pilih bulan dulu';
+    return;
+  }
+  if(!isSheetReadConfigured()){
+    document.getElementById('stats-total').textContent = '—';
+    document.getElementById('stats-period-label').textContent = 'Sheet ID belum ditanam';
+    return;
+  }
+
+  try{
+    const table = await gvizFetchSheet();
+    const rows = parseSheetRows(table);
+    const filtered = rows.filter(r=>{
+      const d=(r.tanggal_input||'').slice(0,10);
+      return d>=from && d<=to;
+    });
+    document.getElementById('stats-total').textContent = filtered.length;
+    document.getElementById('stats-period-label').textContent = 'Jumlah Data Masuk — '+label;
+
+    const byDate={};
+    filtered.forEach(r=>{
+      const d=(r.tanggal_input||'').slice(0,10);
+      if(d) byDate[d]=(byDate[d]||0)+1;
+    });
+    const dates=Object.keys(byDate).sort();
+    const ctx=document.getElementById('statsChart');
+    if(statsChartInstance) statsChartInstance.destroy();
+    statsChartInstance=new Chart(ctx,{
+      type:'bar',
+      data:{
+        labels: dates.map(d=>{ const dd=new Date(d+'T00:00:00'); return dd.getDate()+' '+MO[dd.getMonth()]; }),
+        datasets:[{ label:'Data Masuk', data: dates.map(d=>byDate[d]), backgroundColor:'#F05A1A', borderRadius:4, barThickness: dates.length>20?8:20 }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{
+          y:{beginAtZero:true, ticks:{stepSize:1, precision:0, font:{size:10.5,family:'Poppins'}}},
+          x:{ticks:{font:{size:9.5,family:'Poppins'}, maxRotation:60, minRotation:dates.length>10?60:0}}
+        }
+      }
+    });
+  }catch(e){
+    document.getElementById('stats-total').textContent = '❌';
+    document.getElementById('stats-period-label').textContent = 'Gagal memuat: '+e.message;
+  }
+}
 
 // ── PWA (Service Worker statis) ─────────────────────────
 if('serviceWorker' in navigator){
